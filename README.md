@@ -61,3 +61,56 @@ git status
 # Merge and  Rebase
 1. Эксперимент с rebase
 2. Приступили к изучению слияний, мержев и ребейза
+
+
+# Домашнее задание к занятию "3.1. Работа в терминале, лекция 1"
+
+п.8 
+- Q1: какой переменной можно задать длину журнала history, и на какой строчке manual это описывается?
+  - A1.1: Имя переменной HISTSIZE
+  - A1.2: Описание переменной начинается со строки 1178 из 6175
+
+- Q2: что делает директива ignoreboth в bash?
+  - A2: HISTCONTROL\
+              A colon-separated list of values controlling how commands are saved on the history list.  If the list of values includes ignorespace, lines which begin with a space character are not saved in the history list.  A value
+              of ignoredups causes lines matching the previous history entry to not be saved.  A value of ignoreboth is shorthand for ignorespace and ignoredups.  A value of erasedups causes all previous lines matching  the  current
+              line to be removed from the history list before that line is saved.  Any value not in the above list is ignored.  If HISTCONTROL is unset, or does not include a valid value, all lines read by the shell parser are saved
+              on the history list, subject to the value of HISTIGNORE.  The second and subsequent lines of a multi-line compound command are not tested, and are added to the history regardless of the value of HISTCONTROL.
+  - Судя по всему ignoreboth - это ключ, который указывается среди прочих в переменной окружения HISTCONTROL и указывает оболочке не записывать в историю команды, начинающиеся с пробела, а также не дублировать в истории одинаковые команды идущие подряд.
+
+п.9
+- Q: В каких сценариях использования применимы скобки {} и на какой строчке man bash это описано?
+  - A: { list; }\
+              list  is  simply  executed in the current shell environment.  list must be terminated with a newline or semicolon.  This is known as a group command.  The return status is the exit status of list.  Note that unlike the
+              metacharacters ( and ), { and } are reserved words and must occur where a reserved word is permitted to be recognized.  Since they do not cause a word break, they must be separated from list by  whitespace  or  another
+              shell metacharacter.
+  - Это синтаксис для выполнения списка (list) команд в ТЕКУЩЕМ окружении.
+  - Описание начинается на строке 196 из 3219
+
+п.10
+- Q: С учётом ответа на предыдущий вопрос, как создать однократным вызовом touch 100000 файлов? Получится ли аналогичным образом создать 300000? Если нет, то почему?
+  - A1: touch {1..100000}
+  - A2: Нельзя. В настройках limits.h через соотношение константы ARG_MAX и размера стека определяется максимальное число допустимых аргументов для функции (так говорит google). Можно поробовать через цикл.
+
+п.11
+- Q: В man bash поищите по /\[\[. Что делает конструкция [[ -d /tmp ]]
+  - A: `[[ expr ]]` - это проверка `expr` на соответствие True/False. Возвращает 0 или 1. Выражение `-d/tmp` для test проверяет, существует ли файл /tmp и является ли он директорией (опять же без гугла чисто по man, я бы долго доходил до man test).
+
+п.12
+- Q: Основываясь на знаниях о просмотре текущих (например, PATH) и установке новых переменных; командах, которые мы рассматривали, добейтесь в выводе type -a bash в виртуальной машине наличия первым пунктом в списке:
+```bash
+bash is /tmp/new_path_directory/bash
+bash is /usr/local/bin/bash
+bash is /bin/bash
+```
+  - A: 
+```bash
+mkdir -p /tmp/new_path_directory/
+cp /usr/local/bin/bash /tmp/new_path_directory/bash
+PATH=/tmp/new_path_directory:$PATH
+```
+
+п.13
+- Q: Чем отличается планирование команд с помощью batch и at?
+  - A: `at`      executes commands at a specified time. (запуск команд из файла в определенное время)\
+       `batch`   executes commands when system load levels permit; in other words, when the load average drops below 1.5, or the value specified in the invocation of atd. (запуск команд из файла, когда уровень загрузки системы позволяет это сделать). Уровень загрузки системы - это системный показатель, метрика (опять же гугл).
