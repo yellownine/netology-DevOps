@@ -377,3 +377,222 @@ A6: Скриншот прилашается к ответу.
 
 Q7: Найдите информацию о том, что такое :(){ :|:& };:. Запустите эту команду в своей виртуальной машине Vagrant с Ubuntu 20.04 (это важно, поведение в других ОС не проверялось). Некоторое время все будет "плохо", после чего (минуты) – ОС должна стабилизироваться. Вызов dmesg расскажет, какой механизм помог автоматической стабилизации. Как настроен этот механизм по-умолчанию, и как изменить число процессов, которое можно создать в сессии?\
 A7: Создали функцию типа "forkbomb" и вызвали ее. Она создала кучу дочерних процессов пока не настал лимит по допустимому количеству процессов, по умолчанию имеем 3571. Изменить можно через ulimit -u 50. 
+
+# Домашнее задание к занятию "3.5. Файловые системы"
+
+Q1: Узнайте о sparse (разряженных) файлах.
+A1: Если коротко, то sparse-файлы - это формат (структура) представления данных в бинарном виде, когда нулевые байты не записываются на диск, а отмечаются в структуре как запись о их местоположении. Т.к. нулевые байты в такой структуре не занимают место на диске, то такой подход позволяет эффективнее использовать дисковое пространство (со своими минусами).
+
+Q2: Могут ли файлы, являющиеся жесткой ссылкой на один объект, иметь разные права доступа и владельца? Почему?\
+A2: Нет, т.к. эти файлы предоставляют доступ к одной и той же информации (inode) в файловой системе, а, значит, к одной и той же структуре, в котором в том числе указаны права доступа.
+
+Q3: Сделайте vagrant destroy на имеющийся инстанс Ubuntu. Замените содержимое...
+A3: Уничтожили, создали новый конфиг, запустили новую VM, зашли в нее. Посмотрели, по какому адресу доступны два новых диска: `fdisk -l`. Диски доступны по адресам /dev/sdb и /dev/sdc.
+
+Q4: Используя fdisk, разбейте первый диск на 2 раздела: 2 Гб, оставшееся пространство.
+A4: 
+- Разбил /dev/sdb на два раздела (оба primary) с указанными размерами, сохранил разметку в скрипт для sfdisk:
+```bash
+...
+Enter script file name: sfdisk_task
+
+Script successfully saved.
+
+Command (m for help): w
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks. 
+```
+
+Q5: Используя sfdisk, перенесите данную таблицу разделов на второй диск.\
+A5:
+- Сделал дамп конфигурации разбвивки /dev/sdb `sfdisk --dump /dev/sdb > sdb.dump`. Сравнил визуально sdb.dump и sfdisk_task. 
+- Разбил /dev/sdc на разделы по той же схеме `afdisk /dev/sdc < sdb.dump`
+```bash
+Disklabel type: dos
+Disk identifier: 0x596442f5
+
+Device     Boot   Start     End Sectors  Size Id Type
+/dev/sdc1          2048 3907583 3905536  1.9G 83 Linux
+/dev/sdc2       3907584 5242879 1335296  652M 83 Linux
+
+The partition table has been altered.
+Calling ioctl() to re-read partition table.
+Syncing disks. 
+```
+- еще можно было подгрузить разбивку из файла в утилите fdisk, указав ключ I.
+
+Q6: Соберите mdadm RAID1 на паре разделов 2 Гб.\
+A6: 
+- по примеру из манула создал RAID1 больших разделов командой `mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sd[bc]1`
+```bash
+mdadm: Note: this array has metadata at the start and
+    may not be suitable as a boot device.  If you plan to
+    store '/boot' on this device please ensure that
+    your boot-loader understands md/v1.x metadata, or use
+    --metadata=0.90
+Continue creating array? y
+mdadm: Defaulting to version 1.2 metadata
+mdadm: array /dev/md0 started.
+```
+- посмотрел на результат через `fdisk -l`
+```bash
+Disk /dev/md0: 1.88 GiB, 1997537280 bytes, 3901440 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+```
+
+Q7: Соберите mdadm RAID0 на второй паре маленьких разделов.
+A7:
+- повторил с маленькими разделами `mdadm --create /dev/md1 --level=0 --raid-devices=2 /dev/sd[bc]2`
+```bash
+...
+mdadm: array /dev/md1 started.
+```
+- fdisk -l показал 2 массива
+```bash
+Disk /dev/md0: 1.88 GiB, 1997537280 bytes, 3901440 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+
+
+Disk /dev/md1: 1.28 GiB, 1363148800 bytes, 2662400 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 524288 bytes / 1048576 bytes
+```
+
+Q8: Создайте 2 независимых PV на получившихся md-устройствах.\
+A8: 
+- командой `pvcreate /dev/md0` создал физический том в системе LVM2
+```bash
+  Physical volume "/dev/md0" successfully created.
+```
+- повторил для /dev/md1
+```bash
+  Physical volume "/dev/md1" successfully created.
+```
+
+Q9: Создайте общую volume-group на этих двух PV.
+A9: командой `vgcreate vg_on_raid /dev/md0 /dev/md1` создал из физических томов группу с именем vg_on_raid, посмотрел на нее через vgdisplay
+```bash
+--- Volume group ---
+  VG Name               vg_on_raid
+  System ID
+  Format                lvm2
+  Metadata Areas        2
+  Metadata Sequence No  1
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                0
+  Open LV               0
+  Max PV                0
+  Cur PV                2
+  Act PV                2
+  VG Size               3.12 GiB
+  PE Size               4.00 MiB
+  Total PE              800
+  Alloc PE / Size       0 / 0
+  Free  PE / Size       800 / 3.12 GiB
+  VG UUID               yRYlmG-QZdm-sV4L-MY4I-a54P-zMM1-J2OAL1
+```
+
+Q10: Создайте LV размером 100 Мб, указав его расположение на PV с RAID0.\
+A10: командой `lvcreate -n small_lv -L 100m vg_on_raid /dev/md1` создал логический том размером 100Мб на pv /dev/md1
+```bash
+root@vagrant:~# lvs
+  LV       VG         Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  small_lv vg_on_raid -wi-a----- 100.00m
+  root     vgvagrant  -wi-ao---- <62.54g
+  swap_1   vgvagrant  -wi-ao---- 980.00m
+```
+
+Q11: Создайте mkfs.ext4 ФС на получившемся LV.\
+A11: командой `mkfs.ext4 /dev/vg_on_raid/small_lv` создал файловую систему на логическом диске
+```bash
+mke2fs 1.45.5 (07-Jan-2020)
+Creating filesystem with 25600 4k blocks and 25600 inodes
+
+Allocating group tables: done
+Writing inode tables: done
+Creating journal (1024 blocks): done
+Writing superblocks and filesystem accounting information: done
+```
+
+Q12: Смонтируйте этот раздел в любую директорию, например, /tmp/new.\
+A12: создал директорию /tmp/new и командой `mount /dev/vg_on_raid/small_lv /tmp/new` смонтировал логический диск в директорию. Команда закончилась бесшумно, логи отсутствуют.
+
+Q13: Поместите туда тестовый файл, например wget https://mirror.yandex.ru/ubuntu/ls-lR.gz -O /tmp/new/test.gz\
+A13: директории появился первый файл
+```bash
+total 22M
+drwx------ 2 root root 16K Nov 29 14:01 lost+found
+-rw-r--r-- 1 root root 22M Nov 29 09:55 test.gz
+```
+
+Q14: Прикрепите вывод lsblk.\
+A14: Итого имею такую структуру блоковых устройств
+```bash
+root@vagrant:/tmp/new# lsblk
+NAME                      MAJ:MIN RM  SIZE RO TYPE  MOUNTPOINT
+sda                         8:0    0   64G  0 disk
+├─sda1                      8:1    0  512M  0 part  /boot/efi
+├─sda2                      8:2    0    1K  0 part
+└─sda5                      8:5    0 63.5G  0 part
+  ├─vgvagrant-root        253:0    0 62.6G  0 lvm   /
+  └─vgvagrant-swap_1      253:1    0  980M  0 lvm   [SWAP]
+sdb                         8:16   0  2.5G  0 disk
+├─sdb1                      8:17   0  1.9G  0 part
+│ └─md0                     9:0    0  1.9G  0 raid1
+└─sdb2                      8:18   0  652M  0 part
+  └─md1                     9:1    0  1.3G  0 raid0
+    └─vg_on_raid-small_lv 253:2    0  100M  0 lvm   /tmp/new
+sdc                         8:32   0  2.5G  0 disk
+├─sdc1                      8:33   0  1.9G  0 part
+│ └─md0                     9:0    0  1.9G  0 raid1
+└─sdc2                      8:34   0  652M  0 part
+  └─md1                     9:1    0  1.3G  0 raid0
+    └─vg_on_raid-small_lv 253:2    0  100M  0 lvm   /tmp/new
+```
+вижу, что `/tmp/new` "опирается" на два раздела: /dev/sdb2 и /dev/sdc2
+
+Q15: Протестируйте целостность файла..\
+A15: протестировал и получил
+```bash
+root@vagrant:/tmp/new# gzip -t /tmp/new/test.gz
+root@vagrant:/tmp/new# echo $?
+0
+```
+
+Q16: Используя pvmove, переместите содержимое PV с RAID0 на RAID1.\
+A16: командой `pvmove /dev/md1 /dev/md0` перемещаем физические тома
+```bash
+root@vagrant:/# pvmove /dev/md1 /dev/md0
+  /dev/md1: Moved: 60.00%
+  /dev/md1: Moved: 100.00%
+```
+
+Q17: Сделайте --fail на устройство в вашем RAID1 md.\
+A17: командой `mdadm /dev/md0 -f /dev/sdb1` пометили устройство /dev/sdb1 как "сломанное".
+
+Q18: Подтвердите выводом dmesg, что RAID1 работает в деградированном состоянии.\
+A18: На действия из вопроса 17 ядро отреагировало сообщением (dmesg):
+```bash
+[ 7849.260952] md/raid1:md0: Disk failure on sdb1, disabling device.
+               md/raid1:md0: Operation continuing on 1 devices.
+```
+
+Q19: Протестируйте целостность файла, несмотря на "сбойный" диск он должен продолжать быть доступен...
+A19: тест на целостность прошел успешно
+```bash
+root@vagrant:/# gzip -t /tmp/new/test.gz
+root@vagrant:/# echo $?
+0
+```
+хорошо, что сделалми pvmove
+
+Q20: Погасите тестовый хост, vagrant destroy.\
+A20: Выкулючаем вирутальную машину, делаем коммит и отправляем ДЗ на проверку. Спасибо за ДЗ и обратную связь по нему.
