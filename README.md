@@ -793,3 +793,135 @@ Q8: Установите эмулятор EVE-ng.
 Инструкция по установке - https://github.com/svmyasnikov/eve-ng
 Выполните задания на lldp, vlan, bonding в эмуляторе EVE-ng.
 
+# Домашнее задание к занятию "3.8. Компьютерные сети, лекция 3"
+
+Q1: Подключитесь к публичному маршрутизатору в интернет. Найдите маршрут к вашему публичному IP
+```
+telnet route-views.routeviews.org
+Username: rviews
+```
+A2: 
+- show ip route 94.19.103.111 
+```
+Routing entry for 94.19.96.0/20
+  Known via "bgp 6447", distance 20, metric 0
+  Tag 3267, type external
+  Last update from 194.85.40.15 2w2d ago
+  Routing Descriptor Blocks:
+  * 194.85.40.15, from 194.85.40.15, 2w2d ago
+      Route metric is 0, traffic share count is 1
+      AS Hops 2
+      Route tag 3267
+      MPLS label: none
+```
+- show bgp 94.19.103.111 
+```
+BGP routing table entry for 94.19.96.0/20, version 1374638666
+Paths: (1 available, best #1, table default)
+  Not advertised to any peer
+  Refresh Epoch 1
+  3267 35807
+    194.85.40.15 from 194.85.40.15 (185.141.126.1)
+      Origin incomplete, metric 0, localpref 100, valid, external, best
+      path 7FE0FF3FBDD0 RPKI State not found
+      rx pathid: 0, tx pathid: 0x0
+```
+
+то ли я не совсем понял задание, то ли это все.\
+
+Q2: Создайте dummy0 интерфейс в Ubuntu. Добавьте несколько статических маршрутов. Проверьте таблицу маршрутизации.\
+A2: 
+- сконфигурировал в ВМ модуль для загрузки ядром 
+```bash
+sudo -i
+echo "dummy" >> /etc/modules
+echo "options dummy numdummies=2" > /etc/modprobe.d/dummy.conf
+```
+- настроил 2 интерфейса в /etc/network/interfaces
+```
+auto dummy0
+iface dummy0 inet static
+	address 10.2.2.2/32
+	pre-up ip link add dummy0 type dummy
+	post-down ip link del dummy0
+
+auto dummy1
+iface dummy1 inet static
+	address 10.2.2.3/32
+	pre-up ip link add dummy1 type dummy
+	post-down ip link del dummy1
+```
+- проверил, что интерфейсы подгружаются при инициализации
+```
+telinit 5
+ip -br link
+lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP>
+eth0             UP             08:00:27:73:60:cf <BROADCAST,MULTICAST,UP,LOWER_UP>
+dummy0           UNKNOWN        36:59:20:37:b4:97 <BROADCAST,NOARP,UP,LOWER_UP>
+dummy1           UNKNOWN        de:b4:2a:f5:37:7a <BROADCAST,NOARP,UP,LOWER_UP>
+```
+похоже, для dummy интерфейсов состояние `unknown` является штатным (так пишут в гугл)
+
+- еще раз отредактировал /etc/network/interface. Добавил маршруты.
+```
+auto dummy0
+iface dummy0 inet static
+	address 10.2.2.2/32
+	pre-up ip link add dummy0 type dummy
+	post-down ip link del dummy0
+
+auto dummy1
+iface dummy1 inet static
+	address 10.2.2.3/32
+	pre-up ip link add dummy1 type dummy
+	post-up ip route add 8.8.0.0/16 via 10.2.2.2
+	post-up ip route add 10.2.2.2/32 dev dummy0
+	post-down ip link del dummy1
+```
+получил
+```bash
+ip r
+default via 10.0.2.2 dev eth0 proto dhcp src 10.0.2.15 metric 100
+8.8.0.0/16 via 10.2.2.2 dev dummy0 // new
+10.0.2.0/24 dev eth0 proto kernel scope link src 10.0.2.15
+10.0.2.2 dev eth0 proto dhcp scope link src 10.0.2.15 metric 100
+10.2.2.2 dev dummy0 scope link //new
+```
+
+Q3: Проверьте открытые TCP порты в Ubuntu, какие протоколы и приложения используют эти порты? Приведите несколько примеров.\
+A3: 
+- выполнил команду
+```bash
+vagrant@vagrant:~$ ss -tanp
+State                       Recv-Q                      Send-Q                                            Local Address:Port                                             Peer Address:Port                       Process
+LISTEN                      0                           4096                                                    0.0.0.0:111                                                   0.0.0.0:*
+LISTEN                      0                           4096                                              127.0.0.53%lo:53                                                    0.0.0.0:*
+LISTEN                      0                           128                                                     0.0.0.0:22                                                    0.0.0.0:*
+ESTAB                       0                           0                                                     10.0.2.15:22                                                   10.0.2.2:64156
+LISTEN                      0                           4096                                                       [::]:111                                                      [::]:*
+LISTEN                      0                           128                                                        [::]:22                                                       [::]:*
+```
+Задействованные порты и использующие их приложения/протоколы (получено командой ss -tarp): 
+- 111 - rpc.portmapper,
+- 53 - domain,
+- 22 - ssh, 
+
+Q4: Проверьте используемые UDP сокеты в Ubuntu, какие протоколы и приложения используют эти порты?\
+- выполнил команду
+```bash
+vagrant@vagrant:~$ ss -uanp
+State                       Recv-Q                      Send-Q                                             Local Address:Port                                             Peer Address:Port                      Process
+UNCONN                      0                           0                                                  127.0.0.53%lo:53                                                    0.0.0.0:*
+UNCONN                      0                           0                                                 10.0.2.15%eth0:68                                                    0.0.0.0:*
+UNCONN                      0                           0                                                        0.0.0.0:111                                                   0.0.0.0:*
+UNCONN                      0                           0                                                           [::]:111                                                      [::]:*
+```
+Задействованные порты и использующие их приложения/протоколы (получено командой ss -uarp): 
+- 111 - rpc.portmapper,
+- 53 - domain,
+- 68 - bootpc, 
+
+Q5: Используя diagrams.net, создайте L3 диаграмму вашей домашней сети или любой другой сети, с которой вы работали.\
+A5: [моя домашняя сеть](https://drive.google.com/file/d/1uOE-Ljd5BC-Xhbpxm7NK48IRjiiuHelE/view?usp=sharing)
+
+
