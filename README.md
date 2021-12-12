@@ -925,3 +925,120 @@ Q5: Используя diagrams.net, создайте L3 диаграмму ва
 A5: [моя домашняя сеть](https://drive.google.com/file/d/1uOE-Ljd5BC-Xhbpxm7NK48IRjiiuHelE/view?usp=sharing)
 
 
+# Домашнее задание к занятию "3.9. Элементы безопасности информационных систем"
+
+Q1: Установите Bitwarden плагин для браузера. Зарегестрируйтесь и сохраните несколько паролей.\
+A1: 
+![Bitwarden](./screenshots/3-9_Bitwarden.png)
+
+Q2:Установите Google authenticator на мобильный телефон. Настройте вход в Bitwarden акаунт через Google authenticator OTP.\
+A2: 
+![Bitwarden+OTP](./screenshots/3-9_Bitwarden+OTP.png)
+
+Q3: Установите apache2, сгенерируйте самоподписанный сертификат, настройте тестовый сайт для работы по HTTPS.\
+A3: 
+- Решил установить nginx,т.к. ранее нам рассказывали как на нем еще и балансировщик можно сделать. Будем осваивать сервер.
+- с помощью openssl сгенерировал ssl-ключ и ssl-сертификат. Параметры группы Диффи-Хелманн с помощью openssl генерировать не стал (узнал, что так можно уже потом), а воспользовался ссылкой, данной в сервисе генерации ssl-конфига для nginx.
+- с помощью [сервиса](https://ssl-config.mozilla.org/#server=nginx&version=1.17.7&config=intermediate&openssl=1.1.1k&guideline=5.6) cгенерировал SSL-конфигурацию для nginx-сервера и вставил ее в блок http{} файла /etc/nginx.nginx.conf. В этой конфигурации указал путь к ssl-ключу и ssl-сертификату и закоментировал параметр, указывающий путь к корневому сертификату (у меня sef signed certificate).
+- склонировал репозиторий утилиты testssl.sh и "прозвонил" адрес (0.0.0.0) nginx-сервера. Получил огромный отчет, конец которого привожу ниже:
+```bash
+ Rating (experimental)
+
+ Rating specs (not complete)  SSL Labs's 'SSL Server Rating Guide' (version 2009q from 2020-01-30)
+ Specification documentation  https://github.com/ssllabs/research/wiki/SSL-Server-Rating-Guide
+ Protocol Support (weighted)  0 (0)
+ Key Exchange     (weighted)  0 (0)
+ Cipher Strength  (weighted)  0 (0)
+ Final Score                  0
+ Overall Grade                T
+ Grade cap reasons            Grade capped to T. Issues with the chain of trust (self signed)
+                              Grade capped to M. Domain name mismatch
+
+ Done 2021-12-09 18:09:53 [  62s] -->> 0.0.0.0:443 (0.0.0.0) <<--
+```
+сертификат оценили как sef signed.
+
+Q4: Проверьте на TLS уязвимости произвольный сайт в интернете (кроме сайтов МВД, ФСБ, МинОбр, НацБанк, РосКосмос, РосАтом, РосНАНО и любых госкомпаний, объектов КИИ, ВПК ... и тому подобное).\
+A4: 
+- воспользовался уже склонированной утилитой testssl.sh для TLS-теста ВУЗа, который когда-то давно закончил:
+```bash
+
+ Testing vulnerabilities
+
+ Heartbleed (CVE-2014-0160)                not vulnerable (OK), timed out
+ CCS (CVE-2014-0224)                       not vulnerable (OK)
+ Ticketbleed (CVE-2016-9244), experiment.  not vulnerable (OK), session IDs were returned but potential memory fragments do not differ
+ ROBOT                                     not vulnerable (OK)
+ Secure Renegotiation (RFC 5746)           supported (OK)
+ Secure Client-Initiated Renegotiation     not vulnerable (OK)
+ CRIME, TLS (CVE-2012-4929)                not vulnerable (OK)
+ BREACH (CVE-2013-3587)                    potentially NOT ok, "gzip" HTTP compression detected. - only supplied "/" tested
+                                           Can be ignored for static pages or if no secrets in the page
+ POODLE, SSL (CVE-2014-3566)               not vulnerable (OK), no SSLv3 support
+ TLS_FALLBACK_SCSV (RFC 7507)              Downgrade attack prevention supported (OK)
+ SWEET32 (CVE-2016-2183, CVE-2016-6329)    not vulnerable (OK)
+ FREAK (CVE-2015-0204)                     not vulnerable (OK)
+ DROWN (CVE-2016-0800, CVE-2016-0703)      not vulnerable on this host and port (OK)
+                                           make sure you don't use this certificate elsewhere with SSLv2 enabled services
+                                           https://censys.io/ipv4?q=5A618154A6FC106BE05AB39420207C37AA1B761A3F1EE177C8FA486CA1EB7BE2 could help you to find out
+ LOGJAM (CVE-2015-4000), experimental      VULNERABLE (NOT ok): common prime: nginx/1024-bit MODP group with safe prime modulus (1024 bits),
+                                           but no DH EXPORT ciphers
+ BEAST (CVE-2011-3389)                     TLS1: ECDHE-RSA-AES256-SHA ECDHE-RSA-AES128-SHA DHE-RSA-AES256-SHA DHE-RSA-AES128-SHA AES256-SHA AES128-SHA
+                                           VULNERABLE -- but also supports higher protocols  TLSv1.1 TLSv1.2 (likely mitigated)
+ LUCKY13 (CVE-2013-0169), experimental     potentially VULNERABLE, uses cipher block chaining (CBC) ciphers with TLS. Check patches
+ Winshock (CVE-2014-6321), experimental    not vulnerable (OK) - CAMELLIA or ECDHE_RSA GCM ciphers found
+ RC4 (CVE-2013-2566, CVE-2015-2808)        no RC4 ciphers detected (OK)
+ ```
+Некий `LOGJAM (CVE-2015-4000), experimental` оказался not ok. Сам хост получил оценку "B"
+```bash
+ Rating (experimental)
+
+ Rating specs (not complete)  SSL Labs's 'SSL Server Rating Guide' (version 2009q from 2020-01-30)
+ Specification documentation  https://github.com/ssllabs/research/wiki/SSL-Server-Rating-Guide
+ Protocol Support (weighted)  95 (28)
+ Key Exchange     (weighted)  80 (24)
+ Cipher Strength  (weighted)  90 (36)
+ Final Score                  88
+ Overall Grade                B
+ Grade cap reasons            Grade capped to B. TLS 1.1 offered
+                              Grade capped to B. TLS 1.0 offered
+```
+
+Q5: Установите на Ubuntu ssh сервер, сгенерируйте новый приватный ключ. Скопируйте свой публичный ключ на другой сервер. Подключитесь к серверу по SSH-ключу.\
+A5: Это сделано давно, еще на этапе изучений git в теме "подключение нескольких remote" - Все (github, gitlab, bitbacket) настроены на работу по ssh.
+
+Q6: Переименуйте файлы ключей из задания 5. Настройте файл конфигурации SSH клиента, так чтобы вход на удаленный сервер осуществлялся по имени сервера.
+A6: В августе решил поработать программистом, пришлось настраивать доступы с разных git-аккаунтов к разным remote-ам, туда же добавлял ssh-ключи для gitlab, github, bitbucket. Вот что вышло:
+```commandline
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+
+Host github-skipp
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_skipp
+
+Host gitlab.muonapps.com
+  HostName gitlab.muonapps.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_muon
+
+Host gitlab.com
+  HostName gitlab.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_gitlab
+
+Host bitbucket.org
+  HostName bitbucket.org
+  User git
+  IdentityFile ~/.ssh/id_ed25519_bitbucket
+```
+Git - это очень классный инструмент!
+
+Q7: Соберите дамп трафика утилитой tcpdump в формате pcap, 100 пакетов. Откройте файл pcap в Wireshark.\
+A7:
+- командой `sudo tcpdump -c 100 -i eth0 -w eth0_100.pcap` собрал 100 пакетов с интерфейса eth0 в файл eth0_100.pcap
+- скинул файл с дампом в хост-машину из ВМ, установил wireshark
+![wireshark](./screenshots/3-9_wireshark_100.png)
