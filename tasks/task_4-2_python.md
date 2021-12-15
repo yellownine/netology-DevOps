@@ -19,9 +19,9 @@ c = a + b
 ### Вопросы:
 | Вопрос  | Ответ |
 | ------------- | ------------- |
-| Какое значение будет присвоено переменной `c`?  | ???  |
-| Как получить для переменной `c` значение 12?  | ???  |
-| Как получить для переменной `c` значение 3?  | ???  |
+| Какое значение будет присвоено переменной `c`?  | никакое  |
+| Как получить для переменной `c` значение 12?  | c = str(a) + b |
+| Как получить для переменной `c` значение 3?  | c = a + int(b)  |
 
 ## Обязательная задача 2
 Мы устроились на работу в компанию, где раньше уже был DevOps Engineer. Он написал скрипт, позволяющий узнать, какие файлы модифицированы в репозитории, относительно локальных изменений. Этим скриптом недовольно начальство, потому что в его выводе есть не все изменённые файлы, а также непонятен полный путь к директории, где они находятся. Как можно доработать скрипт ниже, чтобы он исполнял требования вашего руководителя?
@@ -43,12 +43,27 @@ for result in result_os.split('\n'):
 
 ### Ваш скрипт:
 ```python
-???
+#!/usr/bin/env python3
+
+import os
+current_dir = os.getcwd()
+rel_path = "~/netology/netology-DevOps"
+git_key = "изменено"
+bash_command = [f'cd {rel_path}', "git status"]
+result_os = os.popen(' && '.join(bash_command)).read()
+is_change = False # не задействованная переменная ?!
+for result in result_os.split('\n'):
+    if result.find(git_key) != -1:
+        prepare_result = result.replace(f'\t{git_key}:   ', '')
+        print(os.path.join(current_dir, prepare_result.strip()))
+
 ```
 
 ### Вывод скрипта при запуске при тестировании:
 ```
-???
+/Users/leonid/netology/netology-DevOps/README.md
+/Users/leonid/netology/netology-DevOps/scripts/4_2.py
+/Users/leonid/netology/netology-DevOps/tasks/task_4-2_python.md
 ```
 
 ## Обязательная задача 3
@@ -56,12 +71,35 @@ for result in result_os.split('\n'):
 
 ### Ваш скрипт:
 ```python
-???
+#!/usr/bin/env python3
+
+import os
+import sys
+
+rep_dirs = sys.argv[1:]
+if len(rep_dirs) == 0:
+    rep_dirs.append(os.getcwd())
+
+def log_modified(rep_dir):
+    git_key = "изменено"
+    bash_command = [f'cd {rep_dir}', "git status"]
+    result_os = os.popen(' && '.join(bash_command)).read()
+    for result in result_os.split('\n'):
+        if result.find(git_key) != -1:
+            prepare_result = result.replace(f'\t{git_key}:   ', '')
+            print(os.path.join(rep_dir, prepare_result.strip()))
+
+
+for r_dir in rep_dirs:
+    log_modified(r_dir)
 ```
 
 ### Вывод скрипта при запуске при тестировании:
 ```
-???
+leonid@mac / % python3 ~/netology/netology-DevOps/scripts/4_2.py /Users/leonid/netology/netology-DevOps/
+/Users/leonid/netology/netology-DevOps/README.md
+/Users/leonid/netology/netology-DevOps/scripts/4_2.py
+/Users/leonid/netology/netology-DevOps/tasks/task_4-2_python.md
 ```
 
 ## Обязательная задача 4
@@ -69,12 +107,36 @@ for result in result_os.split('\n'):
 
 ### Ваш скрипт:
 ```python
-???
+import socket
+
+dns_data_last = {'drive.google.com': 0, 'mail.google.com': 0, 'google.com': 0}
+urls_to_check = ['drive.google.com', 'mail.google.com', 'google.com']
+
+while True:
+    for url_to_check in urls_to_check:
+        ip = socket.gethostbyname(url_to_check)
+        if dns_data_last[url_to_check] != ip:
+            print(f'[ERROR] {url_to_check} IP mismatch: {dns_data_last[url_to_check]} {ip}')
+        else:
+            print(url_to_check + ' - ' + ip)
+        dns_data_last[url_to_check] = ip
 ```
 
 ### Вывод скрипта при запуске при тестировании:
 ```
-???
+leonid@mac scripts % python3 4_2.py                                                                                                                                                                                              practice_4-2
+[ERROR] drive.google.com IP mismatch: 0 142.251.1.194
+[ERROR] mail.google.com IP mismatch: 0 142.250.186.69
+[ERROR] google.com IP mismatch: 0 142.250.184.206
+drive.google.com - 142.251.1.194
+mail.google.com - 142.250.186.69
+google.com - 142.250.184.206
+drive.google.com - 142.251.1.194
+mail.google.com - 142.250.186.69
+google.com - 142.250.184.206
+drive.google.com - 142.251.1.194
+mail.google.com - 142.250.186.69
+google.com - 142.250.184.206
 ```
 
 ## Дополнительное задание (со звездочкой*) - необязательно к выполнению
