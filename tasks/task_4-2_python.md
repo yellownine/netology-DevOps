@@ -107,6 +107,8 @@ leonid@mac / % python3 ~/netology/netology-DevOps/scripts/4_2.py /Users/leonid/n
 
 ### Ваш скрипт:
 ```python
+#!/usr/bin/env python3
+
 import socket
 
 dns_data_last = {'drive.google.com': 0, 'mail.google.com': 0, 'google.com': 0}
