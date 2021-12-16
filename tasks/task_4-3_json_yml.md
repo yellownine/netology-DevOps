@@ -25,27 +25,94 @@
 ```
   Нужно найти и исправить все ошибки, которые допускает наш сервис
 
+A:
+```json
+{ "info" : "Sample JSON output from our service\t",
+        "elements" :[
+            { "name" : "first",
+            "type" : "server",
+            "ip" : 7175 // с точки зрения формата json все хорошо, но здесь бы еще настроить jsonSchema, чтобы это поле имело формат, скажем IPv4
+            },
+            { "name" : "second",
+            "type" : "proxy",
+            "ip" : "71.78.22.43"
+            }
+        ]
+    }
+```
+
 ## Обязательная задача 2
 В прошлый рабочий день мы создавали скрипт, позволяющий опрашивать веб-сервисы и получать их IP. К уже реализованному функционалу нам нужно добавить возможность записи JSON и YAML файлов, описывающих наши сервисы. Формат записи JSON по одному сервису: `{ "имя сервиса" : "его IP"}`. Формат записи YAML по одному сервису: `- имя сервиса: его IP`. Если в момент исполнения скрипта меняется IP у сервиса - он должен так же поменяться в yml и json файле.
 
 ### Ваш скрипт:
 ```python
-???
+#!/usr/bin/env python3
+
+
+import socket
+import os
+import json
+import yaml
+
+json_path = 'dns_data.json'
+yml_path = 'dns_data.yaml'
+dns_data_default = {'drive.google.com': 0, 'mail.google.com': 0, 'google.com': 0}
+
+if os.path.exists(json_path):
+    f_json = open(json_path, 'r')
+    dns_data_last_json = json.load(f_json)
+    f_json.close()
+else:
+    dns_data_last = dns_data_default
+
+if os.path.exists(yml_path):
+    f_yaml = open(yml_path, 'r')
+    dns_data_last_yml = yaml.safe_load(f_yaml)
+    f_yaml.close()
+else:
+    dns_data_last_yml = dns_data_default
+
+dns_data_last = dns_data_last_json
+
+urls_to_check = ['drive.google.com', 'mail.google.com', 'google.com']
+
+for url_to_check in urls_to_check:
+    ip = socket.gethostbyname(url_to_check)
+    if dns_data_last[url_to_check] != ip:
+        print(f'[ERROR] {url_to_check} IP mismatch: {dns_data_last[url_to_check]} {ip}')
+    else:
+        print(url_to_check + ' - ' + ip)
+    dns_data_last[url_to_check] = ip
+
+with open(json_path, "w") as f_json:
+    json.dump(dns_data_last, f_json)
+    f_json.close()
+
+with open(yml_path, "w") as f_yaml:
+    dns_data_for_yaml = []
+    for url in dns_data_last:
+        dns_data_for_yaml.append({url: dns_data_last[url]})
+    yaml.dump(dns_data_for_yaml, f_yaml)
+    f_yaml.close()
 ```
 
 ### Вывод скрипта при запуске при тестировании:
 ```
-???
+drive.google.com - 108.177.14.194
+[ERROR] mail.google.com IP mismatch: 173.194.222.83 173.194.222.19
+google.com - 173.194.222.101
 ```
 
 ### json-файл(ы), который(е) записал ваш скрипт:
 ```json
-???
+{"drive.google.com": "108.177.14.194", "mail.google.com": "173.194.222.19", "google.com": "173.194.222.101"}
 ```
 
 ### yml-файл(ы), который(е) записал ваш скрипт:
 ```yaml
-???
+- drive.google.com: 108.177.14.194
+- mail.google.com: 173.194.222.19
+- google.com: 173.194.222.101
 ```
 
 ## Дополнительное задание (со звездочкой*) - необязательно к выполнению
