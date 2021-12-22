@@ -1042,3 +1042,4 @@ A7:
 - командой `sudo tcpdump -c 100 -i eth0 -w eth0_100.pcap` собрал 100 пакетов с интерфейса eth0 в файл eth0_100.pcap
 - скинул файл с дампом в хост-машину из ВМ, установил wireshark
 ![wireshark](./screenshots/3-9_wireshark_100.png)
+
