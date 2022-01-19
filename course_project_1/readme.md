@@ -174,7 +174,7 @@ leonid@mac vm_vagrant % vagrant ssh -c "sudo cat /root/CA_cert.crt" > vm_CA_cert
 Connection to 127.0.0.1 closed.
 ```
 
-![CA_cert_aplly](/Users/leonid/netology/netology-DevOps/screenshots/vm_CA_Cert.png)
+![CA_cert_aplly](./screenshots/vm_CA_Cert.png)
 
 
 Q6:
@@ -209,7 +209,7 @@ root@vagrant:~# nginx -s reload
 Q8:
 - в хостовой машине добавим в host пару 192.168.56.4 subtest.testsite.org
 - через браузер обратимся по адресу subtest.testsite.org
-  ![proof](/Users/leonid/netology/netology-DevOps/screenshots/authored_site.png)
+  ![proof](./screenshots/authored_site.png)
 
 ### Как же долго я к этому шел:))
 
