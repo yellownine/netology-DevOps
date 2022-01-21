@@ -238,3 +238,54 @@ root@test:~# crontab -e
 ```
 и там пишем строчку
 
+---
+Псоле комментариев преподавателя
+- изменим время запуска задания в крон
+```bash
+59 17 21 * * /root/cert_issue.sh #время в ВМ отличается от времени на хосте на 3 часа
+```
+- изменим скрипт обновления сертификата (пришлось добавть экспорт переменных окружения)
+```bash
+#! /bin/bash
+
+rm testsite.crt || 1
+export VAULT_ADDR=http://127.0.0.1:8200
+export VAULT_TOKEN=root
+vault write -format=json pki_int/issue/testsite-dot-org common_name="subtest.testsite.org" ttl="730h" > testsite.crt
+cat testsite.crt | jq -r .data.certificate > /etc/ssl/certs/testsite.crt.pem
+cat testsite.crt | jq -r .data.ca_chain[] >> /etc/ssl/certs/testsite.crt.pem
+cat testsite.crt | jq -r .data.private_key > /etc/ssl/certs/testsite.key
+systemctl restart nginx
+exit 
+```
+- проверим, как отработал cron. 
+```bash
+root@test:~# grep CRON /var/log/syslog
+Jan 20 10:17:01 test CRON[22454]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 20 12:17:01 test CRON[22466]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 20 13:17:01 test CRON[22479]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 20 14:17:01 test CRON[22489]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 20 15:17:01 test CRON[22498]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 20 16:17:01 test CRON[22507]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 21 13:17:01 test CRON[22559]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 21 14:17:01 test CRON[22570]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jan 21 17:34:01 test CRON[22671]: (root) CMD (/root/cert_issue.sh)
+Jan 21 17:34:01 test CRON[22670]: (CRON) info (No MTA installed, discarding output)
+Jan 21 17:40:01 test CRON[22759]: (root) CMD (/root/cert_issue.sh)
+Jan 21 17:40:01 test CRON[22758]: (CRON) info (No MTA installed, discarding output)
+Jan 21 17:50:01 test CRON[22817]: (root) CMD (/root/cert_issue.sh)
+Jan 21 17:50:01 test CRON[22816]: (CRON) info (No MTA installed, discarding output)
+Jan 21 17:59:01 test CRON[22871]: (root) CMD (/root/cert_issue.sh)
+```
+Здесь присутствуют логи работы cron с неудачными попытками генерации нового сертификата. Эти попытки соответствуют ходу моего дебага скрипта с задачей, в результате которого я добавил в скрипт экспорт переменных.  
+Потом пришлось почистить кэш браузера, чтобы добиться вывода обращения к тестовому серверу с подгрузкой нового сертификата  
+![Cert_update](../screenshots/cert_updated.png)  
+По факту cron отработал несколько раньше, что видно на скриншоте выше, а также в выводе утилиты `testssl.sh`
+```bash
+...
+
+Certificate Validity (UTC)   expires < 60 days (30) (2022-01-21 17:58 --> 2022-02-21 03:59)...
+```
+
+Спасибо проверившему меня преподавателю за бдительность - узнал еще что-то полезное.
+
