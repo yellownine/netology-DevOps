@@ -2,14 +2,14 @@
   "builders": [
     {
       "disk_type": "network-nvme",
-      "folder_id": "",
+      "folder_id": "b1gv91nek1arrdi9rjkh",
       "image_description": "by packer",
       "image_family": "centos",
-      "image_name": "centos-7-base",
+      "image_name": "centos-7-base-with-ctop",
       "source_image_family": "centos-7",
       "ssh_username": "centos",
-      "subnet_id": "",
-      "token": "",
+      "subnet_id": "e9btva8b3u27ugeqjmq0",
+      "token": "AQAAAAAFKRkMAATuwaYUQxT8TUT0pPz5f0eJ1jQ",
       "type": "yandex",
       "use_ipv4_nat": true,
       "zone": "ru-central1-a"
@@ -19,7 +19,9 @@
     {
       "inline": [
         "sudo yum -y update",
-        "sudo yum -y install bridge-utils bind-utils iptables curl net-tools tcpdump rsync telnet openssh-server"
+        "sudo yum -y install bridge-utils bind-utils iptables curl net-tools tcpdump rsync telnet openssh-server wget",
+        "sudo wget https://github.com/bcicen/ctop/releases/download/0.7.6/ctop-0.7.6-linux-amd64 -O /usr/local/bin/ctop",
+        "sudo chmod +x /usr/local/bin/ctop"
       ],
       "type": "shell"
     }

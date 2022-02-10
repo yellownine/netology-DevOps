@@ -1,17 +1,17 @@
 # Заменить на ID своего облака
 # https://console.cloud.yandex.ru/cloud?section=overview
 variable "yandex_cloud_id" {
-  default = "b1gu1gt5nqi6lqgu3t7s"
+  default = "b1g2tk433lri26b1sh53"
 }
 
 # Заменить на Folder своего облака
 # https://console.cloud.yandex.ru/cloud?section=overview
 variable "yandex_folder_id" {
-  default = "b1gaec42k169jqpo02f7"
+  default = "b1gv91nek1arrdi9rjkh"
 }
 
 # Заменить на ID своего образа
 # ID можно узнать с помощью команды yc compute image list
 variable "centos-7-base" {
-  default = "fd884f65mo7hpqd0suh4"
+  default = "fd873qsg4aju011pqft8"
 }
