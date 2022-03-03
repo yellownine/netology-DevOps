@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:12
+    environment:
+      POSTGRES_DB: "netology_pg"
+      POSTGRES_USER: "test_user"
+      POSTGRES_PASSWORD: "test_pwd"
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - db_backup:/var/lib/postgresql/data/backup
+      - ./db_init_scripts:/docker-entrypoint-initdb.d
+volumes:
+  db_data:
+  db_backup:
+    external: true
+    name: db_backup
