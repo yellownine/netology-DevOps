@@ -260,3 +260,48 @@ A6:
 docker exec -t 7a7edbd6124e pg_dumpall -c -U postgres > dump.sql
 ```
 Но эта команда создает дамп на хосте, а не в volume контейнера. В volume контейнера мне пока не по силам сделать. А долг по домашкам растет.
+---
+A6.1: После комментариев преподавателя сделал следующее:
+- новый docker-compose с одним внешним volume для бэкапа
+```yml
+version: "3.9"
+services:
+  postgres:
+    image: postgres:12
+    environment:
+      POSTGRES_DB: "netology_pg"
+      POSTGRES_USER: "test_user"
+      POSTGRES_PASSWORD: "test_pwd"
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - db_backup:/var/lib/postgresql/data/backup
+      - ./db_init_scripts:/docker-entrypoint-initdb.d
+volumes:
+  db_data:
+  db_backup:
+    external: true
+    name: db_backup
+```
+- создал внешний volume
+```bash
+leonid@mac 6_2_SQL % docker volume create db_backup
+```
+- зашел в контейнер по его хэшу
+```bash
+leonid@mac db_backup % docker exec -it 0a237fd59660 bash
+```
+- сделал дамп, находясь внутри контейнера
+```bash
+root@0a237fd59660:/# pg_dump -U test_user test_db > /var/lib/postgresql/data/backup/test_db.dump.sql
+```
+- запустил еще один чистый контейнер с postgres
+```bash
+leonid@mac db_backup % docker run -it --name other_postgres -v db_backup:/var/lib/postgresql/backup/ -e POSTGRES_PASSWORD=password -d postgres
+```
+- зашел в контейнер и загрузил дамп в psql
+```bash
+leonid@mac db_backup % docker exec -it 2ea65fc7977dbd3d61ee8970997f1cfc3b3872b6eb9567fb252bbcf56dfc06c9
+root@2ea65fc7977d:/# psql -U postgres < /var/lib/postgresql/backup/test_db.dump.sql
+```
